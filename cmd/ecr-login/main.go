@@ -4,6 +4,7 @@ import (
 	"context"
 	"flag"
 	"log"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -27,7 +28,10 @@ func main() {
 
 	svc := ecr.New(sess, aws.NewConfig().WithRegion(c.Region))
 
-	tokens, err := ecrinternal.GetAuthorizationTokens(context.Background(), svc)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
+	defer cancel()
+
+	tokens, err := ecrinternal.GetAuthorizationTokens(ctx, svc)
 	if err != nil {
 		log.Fatal(err.Error())
 	}
@@ -44,7 +48,7 @@ func main() {
 	}
 
 	for _, c := range creds {
-		if err := ecrinternal.DockerLogin(c); err != nil {
+		if err := ecrinternal.DockerLogin(ctx, c); err != nil {
 			log.Fatal(err.Error())
 		}
 	}
