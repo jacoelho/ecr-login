@@ -13,22 +13,27 @@ import (
 )
 
 type Config struct {
-	Region string
+	Region  string
+	Timeout time.Duration
 }
 
 func main() {
 	var c Config
 	flag.StringVar(&c.Region, "region", "eu-west-1", "aws region")
+	flag.DurationVar(&c.Timeout, "timeout", time.Second*10, "time limit to login")
 
 	flag.Parse()
 
-	sess := session.Must(session.NewSessionWithOptions(session.Options{
+	sess, err := session.NewSessionWithOptions(session.Options{
 		SharedConfigState: session.SharedConfigEnable,
-	}))
+	})
+	if err != nil {
+		log.Fatal(err.Error())
+	}
 
 	svc := ecr.New(sess, aws.NewConfig().WithRegion(c.Region))
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
+	ctx, cancel := context.WithTimeout(context.Background(), c.Timeout)
 	defer cancel()
 
 	tokens, err := ecrinternal.GetAuthorizationTokens(ctx, svc)
